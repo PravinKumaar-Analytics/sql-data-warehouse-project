@@ -1,0 +1,81 @@
+/*
+                                      
+													-- Gold Layer Analyzed Data --
+									  
+Script Purpose:
+    This script creates the Gold layer for analytics and reporting.
+    - Gold layer contains dimension (dim) and fact tables as views.
+    - Views are built on cleaned Silver layer data.
+    - Includes dimensions: Customers, Products
+    - Includes fact: Sales
+*/
+
+Use Gold;
+                                                -- GOLD DIM CUSTOMERS  --
+drop view if exists gold.dim_customers;
+create view gold.dim_customers as
+select
+    row_number() over(order by ci.cst_id) as customer_key,
+    ci.cst_id as customer_id,
+    ci.cst_key as customer_number,
+    ci.cst_firstname as first_name,
+    ci.cst_lastname as last_name,
+    la.cntry as country,
+    ci.cst_marital_status as marital_status,
+    case
+        when ci.cst_gndr <> 'n/a' then ci.cst_gndr
+        else coalesce(ca.gen, 'n/a')
+    end as gender,
+    ca.bdate as birthdate,
+    ci.cst_create_date as create_date
+from silver.crm_cust_info ci
+left join silver.erp_cust_az12 ca
+    on ci.cst_key = ca.cid
+left join silver.erp_loc_a101 la
+    on ci.cst_key = la.cid;
+											   -- GOLD DIM PRODUCTS --
+drop view if exists gold.dim_products;
+create view gold.dim_products as
+select
+    row_number() over(order by p.prd_start_dt, p.prd_key) as product_key,
+    p.prd_id as product_id,
+    p.prd_key as product_number,
+    p.prd_nm as product_name,
+    p.cat_id as category_id,
+    c.cat as category,
+    c.subcat as subcategory,
+    c.maintenance as maintenance,
+    p.prd_cost as cost,
+    p.prd_line as product_line,
+    p.prd_start_dt as start_date
+from silver.crm_prd_info p
+left join silver.erp_px_cat_g1v2 c
+    on p.cat_id = c.id
+where p.prd_end_dt is null;
+										       -- GOLD FACT SALES --
+drop view if exists gold.fact_sales;
+create view gold.fact_sales as
+select
+    sd.sls_ord_num as order_number,
+    dp.product_key,
+    dc.customer_key,
+    sd.sls_order_dt as order_date,
+    sd.sls_ship_dt as shipping_date,
+    sd.sls_due_dt as due_date,
+    sd.sls_sales as sales_amount,
+    sd.sls_quantity as quantity,
+    sd.sls_price as price
+from silver.crm_sales_details sd
+left join gold.dim_products dp
+    on sd.sls_prd_key = dp.product_number
+left join gold.dim_customers dc
+    on sd.sls_cust_id = dc.customer_id;
+    
+										   -- TO CHECK GOLD LAYER DATA COUNT --
+select count(*) from gold.dim_customers;
+select count(*) from gold.dim_products;
+select count(*) from gold.fact_sales;
+											-- TO VIEW GOLD LAYER DATAS --
+select *from gold.dim_customers;
+select *from gold.dim_products;
+select *from gold.fact_sales;

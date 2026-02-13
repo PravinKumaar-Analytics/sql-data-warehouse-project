@@ -1,0 +1,135 @@
+/*
+                          -- Gold Layer Business Queries --
+Purpose:
+    This section contains common business analytics questions
+    answered using the Gold layer views (dim_customers, dim_products, fact_sales).
+    Each query is commented with the business question it addresses.
+*/
+
+-- 1.Business question: --
+-- How much revenue did we generate overall? --
+-- total sales --
+select 
+    sum(sales_amount) as total_sales,
+    sum(quantity) as total_quantity
+from gold.fact_sales;
+
+-- 2. Business question: --
+-- How are sales trending over time? --
+⃣-- sales by year and month (trend analysis) -- 
+select 
+    year(order_date) as year,
+    month(order_date) as month,
+    sum(sales_amount) as total_sales
+from gold.fact_sales
+group by year, month
+order by year, month;
+
+-- 3.Business question: --
+-- Who are our most valuable customers? --
+-- top 10 customers by revenue --
+select 
+    dc.customer_id,
+    concat(dc.first_name, ' ', dc.last_name) as customer_name,
+    sum(fs.sales_amount) as total_sales
+from gold.fact_sales fs
+join gold.dim_customers dc
+    on fs.customer_key = dc.customer_key
+group by dc.customer_id, customer_name
+order by total_sales desc
+limit 10;
+
+-- 4.Business question: --
+-- Which countries generate the most revenue? --
+-- sales by country --
+select 
+    dc.country,
+    sum(fs.sales_amount) as total_sales
+from gold.fact_sales fs
+join gold.dim_customers dc
+    on fs.customer_key = dc.customer_key
+group by dc.country
+order by total_sales desc;
+
+-- 5.Business question: --
+-- Which products sell the most? --
+-- top 10 best-selling products --
+select 
+    dp.product_name,
+    sum(fs.quantity) as total_units_sold,
+    sum(fs.sales_amount) as total_sales
+from gold.fact_sales fs
+join gold.dim_products dp
+    on fs.product_key = dp.product_key
+group by dp.product_name
+order by total_sales desc
+limit 10;
+
+
+-- 6.Business question: --
+-- Which product category performs best? --
+-- sales by product category --
+select 
+    dp.category,
+    sum(fs.sales_amount) as total_sales
+from gold.fact_sales fs
+join gold.dim_products dp
+    on fs.product_key = dp.product_key
+group by dp.category
+order by total_sales desc;
+
+
+-- 7.Business question: --
+-- What is the average revenue per order? --
+-- average order value --
+select 
+    avg(sales_amount) as avg_order_value
+from gold.fact_sales;
+
+-- 8.Business question: --
+-- Do male or female customers contribute more to sales? --
+-- customer gender-based sales analysis --
+select 
+    dc.gender,
+    sum(fs.sales_amount) as total_sales
+from gold.fact_sales fs
+join gold.dim_customers dc
+    on fs.customer_key = dc.customer_key
+group by dc.gender;
+
+-- 9.Business question: --
+-- Which customers are repeat buyers? --
+-- repeat customers analysis --
+select 
+    dc.customer_id,
+    count(distinct fs.order_number) as order_count
+from gold.fact_sales fs
+join gold.dim_customers dc
+    on fs.customer_key = dc.customer_key
+group by dc.customer_id
+having order_count > 1
+order by order_count desc;
+
+-- 10. Business question: --
+-- How long does shipping take on average? --
+-- shipping delay analysis --
+select 
+    avg(datediff(shipping_date, order_date)) as avg_shipping_days
+from gold.fact_sales;
+
+-- Full star schema test query--
+select 
+    fs.order_number,
+    fs.order_date,
+    dc.first_name,
+    dc.country,
+    dp.product_name,
+    dp.category,
+    fs.quantity,
+    fs.sales_amount
+from gold.fact_sales fs
+join gold.dim_customers dc
+    on fs.customer_key = dc.customer_key
+join gold.dim_products dp
+    on fs.product_key = dp.product_key
+limit 20;

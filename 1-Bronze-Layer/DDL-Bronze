@@ -1,7 +1,7 @@
 /*
-                                 =============================================================
-                                             Created Databases and Tables 
-								                 =============================================================
+                                 
+                                          -- Create Databases and Tables --
+								                
 Script Purpose:
     This script sets up a simple Data Warehouse structure with three databases/schemas:
         - bronze : raw data

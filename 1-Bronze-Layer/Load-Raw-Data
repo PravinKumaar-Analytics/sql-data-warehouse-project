@@ -1,0 +1,168 @@
+/*
+                                 =============================================================
+                                           Load Raw Data into Bronze Layer
+                                 =============================================================
+Script Purpose:
+    This script loads raw data from CSV files into the Bronze schema.
+    The Bronze layer contains uncleaned/raw data from CRM and ERP systems.
+    Each table is truncated first to remove old data, then CSV data is loaded.
+
+Notes:
+    - Ensure the CSV file paths are correct.
+    - The 'SET' section cleans the data by trimming spaces, removing carriage returns,
+      and converting dates to proper format.
+*/
+
+Use Bronze;
+                                             -- Customer Information --
+TRUNCATE TABLE bronze.crm_cust_info;
+load data infile
+'c:/programdata/mysql/mysql server 8.0/uploads/cust_info.csv'
+into table bronze.crm_cust_info
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(
+    @cst_id,
+    @cst_key,
+    @cst_firstname,
+    @cst_lastname,
+    @cst_marital_status,
+    @cst_gndr,
+    @cst_create_date
+)
+set
+    cst_id             = nullif(trim(replace(@cst_id,'\r','')),''),
+    cst_key            = nullif(trim(replace(@cst_key,'\r','')),''),
+    cst_firstname      = nullif(trim(replace(@cst_firstname,'\r','')),''),
+    cst_lastname       = nullif(trim(replace(@cst_lastname,'\r','')),''),
+    cst_marital_status = nullif(trim(replace(@cst_marital_status,'\r','')),''),
+    cst_gndr           = nullif(trim(replace(@cst_gndr,'\r','')),''),
+    cst_create_date    = str_to_date(
+                            nullif(trim(replace(@cst_create_date,'\r','')),''),
+                            '%y-%m-%d'
+);
+                                             -- Product Information--
+Truncate table bronze.crm_prd_info;
+load data infile
+'c:/programdata/mysql/mysql server 8.0/uploads/prd_info.csv'
+into table bronze.crm_prd_info
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(
+    @prd_id,
+    @prd_key,
+    @prd_nm,
+    @prd_cost,
+    @prd_line,
+    @prd_start_dt,
+    @prd_end_dt
+)
+set
+    prd_id       = nullif(trim(replace(@prd_id,'\r','')),''),
+    prd_key      = nullif(trim(replace(@prd_key,'\r','')),''),
+    prd_nm       = nullif(trim(replace(@prd_nm,'\r','')),''),
+    prd_cost     = nullif(trim(replace(@prd_cost,'\r','')),''),
+    prd_line     = nullif(trim(replace(@prd_line,'\r','')),''),
+    prd_start_dt = str_to_date(nullif(trim(replace(@prd_start_dt,'\r','')),''),'%y-%m-%d'),
+    prd_end_dt   = str_to_date(nullif(trim(replace(@prd_end_dt,'\r','')),''),'%y-%m-%d');
+
+                                               -- Salaes Details--
+truncate table bronze.crm_sales_details;
+load data infile
+'c:/programdata/mysql/mysql server 8.0/uploads/sales_details.csv'
+into table bronze.crm_sales_details
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(
+    @sls_ord_num,
+    @sls_prd_key,
+    @sls_cust_id,
+    @sls_order_dt,
+    @sls_ship_dt,
+    @sls_due_dt,
+    @sls_sales,
+    @sls_quantity,
+    @sls_price
+)
+set
+    sls_ord_num  = nullif(trim(replace(@sls_ord_num,'\r','')),''),
+    sls_prd_key  = nullif(trim(replace(@sls_prd_key,'\r','')),''),
+    sls_cust_id  = nullif(trim(replace(@sls_cust_id,'\r','')),''),
+    sls_order_dt = nullif(trim(replace(@sls_order_dt,'\r','')),''),
+    sls_ship_dt  = nullif(trim(replace(@sls_ship_dt,'\r','')),''),
+    sls_due_dt   = nullif(trim(replace(@sls_due_dt,'\r','')),''),
+    sls_sales    = nullif(trim(replace(@sls_sales,'\r','')),''),
+    sls_quantity = nullif(trim(replace(@sls_quantity,'\r','')),''),
+    sls_price    = nullif(trim(replace(@sls_price,'\r','')),'');
+
+												-- Erp Location --
+Truncate table bronze.erp_loc_a101;
+load data infile
+'c:/programdata/mysql/mysql server 8.0/uploads/loc_a101.csv'
+into table bronze.erp_loc_a101
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(
+    @cid,
+    @cntry
+)
+set
+    cid   = nullif(trim(replace(@cid,'\r','')),''),
+    cntry = nullif(trim(replace(@cntry,'\r','')),'');
+
+                                                 -- ERP Customer --
+truncate table bronze.erp_cust_az12;
+
+load data infile
+'c:/programdata/mysql/mysql server 8.0/uploads/cust_az12.csv'
+into table bronze.erp_cust_az12
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(
+    @cid,
+    @bdate,
+    @gen
+)
+set
+    cid   = nullif(trim(replace(@cid,'\r','')),''),
+    bdate = str_to_date(nullif(trim(replace(@bdate,'\r','')),''),'%y-%m-%d'),
+    gen   = nullif(trim(replace(@gen,'\r','')),'');
+
+                                               -- ERP Product Category --
+
+truncate table bronze.erp_px_cat_g1v2;
+
+load data infile
+'c:/programdata/mysql/mysql server 8.0/uploads/px_cat_g1v2.csv'
+into table bronze.erp_px_cat_g1v2
+fields terminated by ','
+lines terminated by '\n'
+ignore 1 rows
+(
+    @id,
+    @cat,
+    @subcat,
+    @maintenance
+)
+set
+    id          = nullif(trim(replace(@id,'\r','')),''),
+    cat         = nullif(trim(replace(@cat,'\r','')),''),
+    subcat      = nullif(trim(replace(@subcat,'\r','')),''),
+    maintenance = nullif(trim(replace(@maintenance,'\r','')),'');
+
+---------------------------------------- To check table ----------------------------------------
+select
+  (SELECT COUNT(*) FROM bronze.crm_cust_info)      AS crm_cust_info,
+  (SELECT COUNT(*) FROM bronze.crm_prd_info)       AS crm_prd_info,
+  (SELECT COUNT(*) FROM bronze.crm_sales_details)  AS crm_sales_details,
+  (SELECT COUNT(*) FROM bronze.erp_loc_a101)       AS erp_loc_a101,
+  (SELECT COUNT(*) FROM bronze.erp_cust_az12)      AS erp_cust_az12,
+  (SELECT COUNT(*) FROM bronze.erp_px_cat_g1v2)    AS erp_px_cat_g1v2;
+SELECT *
+FROM bronze.crm_cust_info
+WHERE cst_key = 'SF566';
